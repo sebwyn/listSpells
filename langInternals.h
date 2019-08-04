@@ -23,13 +23,14 @@ public:
 	value(type t, void* v);
 };
 
-typedef struct cell {
+class cell {
+public:
 	value car;
 	cell* cdr;
 	
 	cell();
-	~cell();
-} cell;
+	void destroy();
+};
 
 }
 

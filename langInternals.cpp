@@ -23,7 +23,7 @@ void value::destroy(){
 			delete (func*)v;
 			break;
 		case(LIST):
-			delete (cell*)v;
+			((cell*)v)->destroy();
 			break;
 	}
 }
@@ -38,11 +38,12 @@ cell::cell(){
 	cdr = NULL;
 }
 
-cell::~cell(){
+void cell::destroy(){
 	//value should automatically be freed(its destructor should be called)
 	//cdr needs to be freed though(if its not null)
+	car.destroy();
 	if(cdr != NULL){
-		delete cdr;
+		cdr->destroy();
 	}	
 }
 
