@@ -1,18 +1,27 @@
 #include "hashtable.h"
 
-hashNode::hashNode(std::string key, void* value){
+hashNode::hashNode(std::string key, mylang::value* val){
 	this->key = key;
-	this->value = value;
+	this->val = val;
+	next = NULL;
+}
+
+hashNode::~hashNode(){
+	if(next){
+		delete next;
+	}
+	val->destroy();
+	delete val;
 }
 
 hashtable::hashtable(){
-	table = std::vector< std::vector<hashNode> >(HASH_SIZE);
+	table = std::vector<hashNode*>(HASH_SIZE, (hashNode*)NULL);
 }
 
 hashtable::~hashtable(){
-	for(int h = 0; h < HASH_SIZE; h++){
-		for(int i = 0; i < table[h].size(); i++){
-			free(table[h][i].value);
+	for(int i = 0; i < HASH_SIZE; i++){
+		if(table[i]){
+			delete table[i];
 		}
 	}
 }
@@ -25,44 +34,55 @@ unsigned int hashtable::hash(std::string key){
 	return hashValue % HASH_SIZE;
 }
 
-int hashtable::getIndex(std::string key, unsigned int h){
-	for(int i = 0; i < table[h].size(); i++){
-		if(table[h][i].key == key){
-			return i;
+bool hashtable::add(std::string key, mylang::value* val){
+	unsigned int h = hash(key);
+	hashNode* lastNode = NULL;
+	hashNode* currNode = table[h];
+	while(currNode){
+		if(currNode->key == key){
+			//the table already has a value at key
+			return false;
 		}
+		lastNode = currNode;
+		currNode = currNode->next;	
 	}
-	return -1;
+	if(lastNode){
+		lastNode->next = new hashNode(key, val);
+	} else {
+		table[h] = new hashNode(key, val);
+	}
+	return true;
 }
 
-bool hashtable::add(std::string key, void* value){
+bool hashtable::set(std::string key, mylang::value* val){
+	bool found = false;
+	
 	unsigned int h = hash(key);
-	if(getIndex(key, h) < 0){ //make sure the given key doesn't exist
-		table[h].push_back(hashNode(key, value));
-		return true;	
-	} else {
-		return false;
+	hashNode* currNode = table[h];
+	while(currNode){
+		if(currNode->key == key){
+			delete currNode->val;
+			currNode->val = val;
+			found = true;
+			break;
+		}
+		currNode = currNode->next;
 	}
+	return found;
 }
 
-bool hashtable::set(std::string key, void* value){
-	unsigned int h = hash(key);
-	int i = getIndex(key, h);
-	if(i > -1){
-		free(table[h][i].value);
-		table[h][i].value = value;
-		return true;
-	} else {
-		return false;
-	}
-}
+bool hashtable::get(std::string key, mylang::value* out){
+	bool found = false;
 
-void* hashtable::get(std::string key){
-	void* value = NULL;
 	unsigned int h = hash(key);
-	int i = getIndex(key, h);
-	if(i > -1){
-		return table[h][i].value;
-	} else {
-		return NULL;
+	hashNode* currNode = table[h];
+	while(currNode){
+		if(currNode->key == key){
+			(*out) = (*(currNode->val));	
+			found = true;
+			break;
+		}
+		currNode = currNode->next;
 	}
+	return found;
 }

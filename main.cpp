@@ -1,7 +1,13 @@
+//defines most of the language including all the types and the base function 
+//the function class in langInternals acts as the main execution system
+//may move the old "interpreter file" to be a function method
+//this would mean that code cannot be run outside of a function
 #include "langInternals.h"
+
 #include "lexer.h"
 #include "parser.h"
-#include "interpreter.h"
+
+#include "builtin.h"
 
 #include <vector>
 #include <string>
@@ -21,24 +27,23 @@ int main(int args, char** argv){
 			cell* currNode = firstExpr;
 			while(input != "q"){
 				if(input == "current"){
-					std::cout << "type: " << currNode->t 
-					<< " ";
-					switch(currNode->t){
+					std::cout << "type: " << currNode->car.t 					<< " ";
+					switch(currNode->car.t){
 						case(INT):
 							std::cout << "INT: " << 
-							(*(int*)currNode->car);
+							*(int*)currNode->car.v;
 							break;
 						case(SYM):
 							std::cout 
-							<< currNode->car 
+							<< currNode->car.v 
 							<< " ";
 							std::cout << "SYM: " 
 							<< std::string(
-							(char*)currNode->car);	
+							(char*)currNode->car.v);
 							break;
 						case(LIST):
 							std::cout << "SEXPR: " 
-							<< (long)currNode->car;
+							<<(long)currNode->car.v;
 							break;
 					} 
 					std::cout << std::endl;
@@ -54,15 +59,14 @@ int main(int args, char** argv){
 			//make a list of command line args 
 			//that we can pass to the code
 			cell* terArgs = new cell();
-			terArgs->t = LIST;
-			terArgs->car = new cell();	
-			cell* currArg = (cell*)terArgs->car;
+			terArgs->car = value(LIST, new cell());	
+			cell* currArg = (cell*)(terArgs->car.v);
 			if(args > 2){
 				for(int i = 2; i < args; i++){
-					std::string stringArg(argv[i]);
-					currArg->t = INT;
-					currArg->car = malloc(sizeof(int));
-					(*(int*)currArg->car) = std::stoi(stringArg);
+					std::string strArg=std::string(argv[i]);
+					currArg->car = value(INT, new int);
+					int currInt = std::stoi(strArg);
+					*((int*)(currArg->car.v)) = currInt;
 					if(i != args - 1){
 						currArg->cdr = new cell();
 						currArg = currArg->cdr;	
@@ -70,34 +74,25 @@ int main(int args, char** argv){
 				}
 			}
 			//add built-in functions to the environment
-			std::string aString = std::string("a");
-			std::string quoteString = std::string(std::string("quote").c_str());
-			std::string argsString = std::string("args");
-			env builtin = env();
-			cell* quoteArgs = new cell();
-			quoteArgs->t = SYM;
-			quoteArgs->car = (void*)aString.c_str();
-			func* quote = new func(quoteArgs, (cell*)0x1, &builtin);
-			cell* quoteWrapper = new cell();
-			quoteWrapper->t = FUNC;
-			quoteWrapper->car = quote;
-			builtin.e.add(quoteString, quoteWrapper);
-	
-			//make a function and call it with the args
+			env defEnv = builtin::makeBuiltinEnv();
+			
+			//quote terArgs so they can be passed to the main func
 			cell* inArgs = new cell();
-			inArgs->t = LIST;
-			inArgs->car = (void*)new cell();
-			((cell*)inArgs->car)->t = SYM;
-			((cell*)inArgs->car)->car = (void*)quoteString.c_str();
-			((cell*)inArgs->car)->cdr = terArgs;
-			cell* fArgs = new cell();
-			fArgs->t = SYM;
-			fArgs->car = (void*)argsString.c_str();
-			func f = func( fArgs, firstExpr, &builtin);
-			cell out = call(f, inArgs);
+			inArgs->car = value(LIST, new cell());
+			std::string quoteString = std::string("quote");
+			value quoteArgValue = value(SYM, (void*)"quote");	
+			((cell*)inArgs->car.v)->car=quoteArgValue;
+			((cell*)inArgs->car.v)->cdr = terArgs;
+			
+			//generate params for main func			
+			value fArgs = value(LIST, new cell());
+			((cell*)fArgs.v)->car=value(SYM,(void*)"args");
+			func f = func(&defEnv, fArgs, firstExpr);
+			
+			value out; f.call(inArgs, &out);
 			std::cout 
 			<< "Program finished with return type: " << out.t << " "
-			<<  "and a value ptr of: " << out.car
+			<<  "and a value ptr of: " << out.v
 			<< std::endl;
 		} else {
 			std::cout << "Failed to parse" << std::endl;

@@ -1,10 +1,6 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
 #include "langInternals.h"
 
-mylang::cell* allocateType(mylang::cell literal);
-mylang::cell evalCell(mylang::cell c, mylang::env* environ);
-mylang::cell call(mylang::func f, mylang::cell* args);
+mylang::value* allocVal(mylang::value literal);
+mylang::value evalExpr(mylang::cell e, mylang::env environ);

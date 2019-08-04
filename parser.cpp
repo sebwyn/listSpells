@@ -4,25 +4,23 @@
 #include <cstdint>
 #include <cstring>
 #include <sstream>
+#include <string>
 
 using namespace mylang;
 
-cell decodeToken(token t){
-	
-	cell out = cell();	
+void decodeToken(token t, value* out){		
 	if(0x2F < t.value.at(0) && t.value.at(0) < 0x3A){
 		std::stringstream s(t.value);
 		int* value = new int;
 		s >> (*value);
-		out.t = INT;
-		out.car = value; 		
+		out->t = INT;
+		out->v = value; 		
 	} else {
 		char* value = new char[t.value.length()];
 		std::memcpy(value, (void*)t.value.c_str(), t.value.length());
-		out.t = SYM;
-		out.car = value;	
+		out->t = SYM;
+		out->v = value;	
 	}
-	return out;
 }
 
 bool parse(std::vector<token> tokens, cell** out){
@@ -48,8 +46,6 @@ bool parse(std::vector<token> tokens, cell** out){
 			currExpr = e;	
 		} else if(tokens[i].type == CLOSE_PAREN){
 			if(firstExpressions.size() > 1){	
-				//make the previous node point to null, 
-				//because there is no following list element
 				if(lastExpr == NULL){
 					//the list is empty, make a NULL type
 					delete firstExpressions.back();
@@ -60,6 +56,8 @@ bool parse(std::vector<token> tokens, cell** out){
 					lastExpr = currExpr;
 					currExpr = currExpr->cdr;	
 				} else {
+					//make the previous node point to null
+					//because there is no node following it
 					lastExpr->cdr = NULL;
 					//store the root node of the current 
 					//list and pop it
@@ -71,8 +69,7 @@ bool parse(std::vector<token> tokens, cell** out){
 					currExpr = lastExpressions.back();
 					lastExpressions.pop_back();
 		
-					currExpr->t = LIST;
-					currExpr->car = lastE;
+					currExpr->car = value(LIST, lastE);
 				
 					//make a new node and have 
 					//currExpr point to it
@@ -85,9 +82,9 @@ bool parse(std::vector<token> tokens, cell** out){
 				return false;
 			}	
 		} else {
-			(*currExpr) = decodeToken(tokens[i]);	
-			
+			decodeToken(tokens[i], &(currExpr->car));	
 			currExpr->cdr = new cell();
+			
 			lastExpr = currExpr;
 			currExpr = currExpr->cdr; 
 		}
