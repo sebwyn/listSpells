@@ -25,10 +25,13 @@ std::vector<token> lex(std::string input){
 			case ')':
 				out.push_back(token(CLOSE_PAREN, stringC));
 				break;
+			//these all act as token delimiters
+			case '\n':
+			case '\t':
+			case ' ':
+				break;
 			default:
-				if(c != '\t' && c != '\n' && c != ' '){
-					currName += std::string(1, input.at(i));
-				}
+				currName += std::string(1, input.at(i));
 				break;	
 		}
 	}

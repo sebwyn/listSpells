@@ -1,13 +1,14 @@
 #pragma once
 
+#include <string>
+
 namespace mylang {
 
 typedef enum type {
 	INT,
-	NIL,
-
+	
 	SYM,	
-	LIST,
+	LIST, //an empty list is used as nil(a default value)
 
 	FUNC
 } type;
@@ -16,11 +17,12 @@ class value {
 public:
 	type t;
 	void* v;
-	
-	void destroy();
-	
+
 	value();
 	value(type t, void* v);
+	
+	std::string repr();
+	void destroy();
 };
 
 class cell {
@@ -58,7 +60,7 @@ public:
 	//or we could have an interpreter be a class and a func be a child?
 	
 	//lets us change the way args are read
-	virtual bool bindArgs(cell* args, env* fEnv);
+	virtual bool bindArgs(cell* args, env* targetEnv, env* callingEnv);
 
 	//this will determine how args are interpreted and how functions
 	//are executed
@@ -67,13 +69,11 @@ public:
 	//but this may also be bound to external cpp functions that modify
 	//behaviour
 	virtual void myCall(env* fEnv, value* out);
-	//myCall wrapper that is common to all funcs
-	void call(cell* args, value* out);
-	
+	void call(cell* args, env* callingEnv, value* out);	
+
 	func(); //default
-	//mylang function with bindings in mylang
-	//built-in func with binding in c++
 	func(env* parent,value params,cell* code);
+	void destroy(); //free code 
 };
 }
 

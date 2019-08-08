@@ -1,0 +1,6 @@
+(global (quote struct) (lambda (quote (x y z))
+	(quote (lambda (quote (sym))
+		(quote (eval sym))
+	))
+))
+((struct 10 20 30) (quote z))

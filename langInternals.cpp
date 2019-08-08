@@ -2,15 +2,62 @@
 
 #include <iostream>
 
+#include <sstream>
+#include <string>
+
 #include "interpreter.h" //for evalExpr and allocVal
 //these two funcs should be moved later
 
 using namespace mylang;
 
 value::value(){
-	t = NIL;
+	t = LIST;
 	v = NULL;
 }
+
+value::value(type t, void* v){
+	this->t = t;
+	this->v = v;
+}
+
+std::string value::repr(){
+	std::stringstream out;
+	switch(t){
+		case(INT):
+			out << "INT " << (*(int*)v);
+			break;
+		case(SYM):
+			out << "SYM " << ((char*)v);
+			break;
+		case(LIST):{
+			cell* currCell = (cell*)v;
+			if(currCell){
+				//non-nil
+				out << "LIST" << "\n";
+				int count = 0;
+				while(currCell){
+					std::istringstream currCellStream; currCellStream.str(currCell->car.repr());
+					std::string currLine; getline(currCellStream, currLine);
+					out << '\t' <<  "CELL " << count++ << ": " << currLine << '\n';
+					for(std::string cl; getline(currCellStream, cl);){
+						out << "\t" << cl << "\n";
+					}
+					currCell = currCell->cdr;
+				}
+			} else {
+				//NIL list
+				out << "LIST NIL";
+			}
+			break;
+		}
+		case(FUNC):
+			out << "FUNC at " << (long)v;
+			break;	   
+		
+	}
+	return out.str();
+}
+
 void value::destroy(){
 	switch(t){
 		case(SYM):
@@ -23,14 +70,11 @@ void value::destroy(){
 			delete (func*)v;
 			break;
 		case(LIST):
-			((cell*)v)->destroy();
+			if(v){
+				((cell*)v)->destroy();
+			}
 			break;
 	}
-}
-
-value::value(type t, void* v){
-	this->t = t;
-	this->v = v;
 }
 
 cell::cell(){
@@ -58,7 +102,7 @@ env::env(env* parent){
 }
 
 func::func(){
-	params = value();
+	params = value(); //inits params to nil (empty list)
 	code = NULL;
 	parent = NULL;	
 }
@@ -92,20 +136,17 @@ func::func(env* parent,value params,cell* code){
 	this->code = code;
 }
 
-bool func::bindArgs(cell* args, env* fEnv){
+//TO DO: iterate the other way through params
+bool func::bindArgs(cell* args, env* targetEnv, env* callingEnv){
 	//ensure params is a list
-	if(params.t != LIST){
-		std::cout << "Invalid function" << std::endl;
-		return false;
-	}	
 	cell* currParam = (cell*)params.v;
 	cell* currArg = args; //expects a linked non-list of expressions
 	while(currArg){
 		if(currParam){
 			if(currParam->car.t == SYM){
 				std::string key=std::string((char*)currParam->car.v);
-				value* val=allocVal(evalExpr((*currArg),*fEnv));
-				if(!fEnv->e.add(key, val)){
+				value* val=allocVal(evalExpr((*currArg), callingEnv));
+				if(!targetEnv->e.add(key, val)){
 					std::cout << "Strange Error" 
 					<< std::endl;
 					return false;
@@ -141,18 +182,20 @@ void func::myCall(env* fEnv, value* out){
 	(*out) = *(allocVal(outVal));
 }
 
-void func::call(cell* args, value* out){
-	//allocate a new environment 
-	//this will allow for closures
+void func::call(cell* args, env* callingEnv, value* out){
 	env* fEnv = new env(parent);
-	bindArgs(args, fEnv);
-	//pass fEnv as a pointer so we can implement closures
-	//check if the return type is a function and therefore we should save
-	//the environment
-	myCall(fEnv, out);
-	if(out->t != FUNC){
-		delete fEnv;
+	if(bindArgs(args, fEnv, callingEnv)){
+		myCall(fEnv, out);
+		//temporarily allow for closures
+		//we will really need to keep an env ref count
+		if(out->t != FUNC){
+			delete fEnv;	
+		}
+	} else {
+		throw 1;
 	}
-	//NEED TO FIND A WAY TO FREE FLOATING ENVIRON
 }
 
+void func::destroy(){
+	code->destroy();
+}

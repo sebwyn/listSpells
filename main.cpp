@@ -6,8 +6,9 @@
 
 #include "lexer.h"
 #include "parser.h"
-
 #include "builtin.h"
+
+#include "loadFile.h"
 
 #include <vector>
 #include <string>
@@ -16,7 +17,8 @@
 using namespace mylang;
 int main(int args, char** argv){
 	if(args > 1){
-		std::vector<token> tokens = lex(std::string(argv[1]));
+		std::string codeString = loadFile(argv[1]);
+		std::vector<token> tokens = lex(codeString);
 		std::cout << "Found " << tokens.size() 
 		<< " tokens" << std::endl;
 		cell* firstExpr;
@@ -25,39 +27,9 @@ int main(int args, char** argv){
 			std::cout << "Parsed Successfully" << std::endl;
 			std::string input;
 			cell* currNode = firstExpr;
-			while(input != "q"){
-				if(input == "current"){
-					std::cout << "type: " << currNode->car.t 					<< " ";
-					switch(currNode->car.t){
-						case(INT):
-							std::cout << "INT: " << 
-							*(int*)currNode->car.v;
-							break;
-						case(SYM):
-							std::cout 
-							<< currNode->car.v 
-							<< " ";
-							std::cout << "SYM: " 
-							<< std::string(
-							(char*)currNode->car.v);
-							break;
-						case(LIST):
-							std::cout << "SEXPR: " 
-							<<(long)currNode->car.v;
-							break;
-					} 
-					std::cout << std::endl;
-				} else if(input == "next"){
-					if(currNode->cdr != NULL){
-						currNode = currNode->cdr;
-					}
-				} else if(input == "start"){
-					currNode = firstExpr;
-				}
-				std::cin >> input;
-			}
 			//make a list of command line args 
 			//that we can pass to the code
+			cell* inArgs = NULL;
 			cell* terArgs = new cell();
 			terArgs->car = value(LIST, new cell());	
 			cell* currArg = (cell*)(terArgs->car.v);
@@ -73,27 +45,27 @@ int main(int args, char** argv){
 					}	
 				}
 			}
-			//add built-in functions to the environment
-			env defEnv = builtin::makeBuiltinEnv();
-			
-			//quote terArgs so they can be passed to the main func
-			cell* inArgs = new cell();
+			//create the input to the main function	
+			inArgs = new cell();
 			inArgs->car = value(LIST, new cell());
 			std::string quoteString = std::string("quote");
 			value quoteArgValue = value(SYM, (void*)"quote");	
 			((cell*)inArgs->car.v)->car=quoteArgValue;
 			((cell*)inArgs->car.v)->cdr = terArgs;
-			
+			//create the builtin env
+			env defEnv = mylang::env(); builtin::makeBuiltinEnv(&defEnv);
+
 			//generate params for main func			
 			value fArgs = value(LIST, new cell());
 			((cell*)fArgs.v)->car=value(SYM,(void*)"args");
 			func f = func(&defEnv, fArgs, firstExpr);
 			
-			value out; f.call(inArgs, &out);
+			value out; f.call(inArgs, &defEnv, &out);
+			//destroy the code
+			f.destroy();
+			//destroying the main function will delete all the code making other other sub functions go out of scope	
 			std::cout 
-			<< "Program finished with return type: " << out.t << " "
-			<<  "and a value ptr of: " << out.v
-			<< std::endl;
+			<< "Program finished with return value:" << std::endl << out.repr() << std::endl;
 		} else {
 			std::cout << "Failed to parse" << std::endl;
 			return 1;

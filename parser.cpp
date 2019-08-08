@@ -16,8 +16,8 @@ void decodeToken(token t, value* out){
 		out->t = INT;
 		out->v = value; 		
 	} else {
-		char* value = new char[t.value.length()];
-		std::memcpy(value, (void*)t.value.c_str(), t.value.length());
+		char* value = new char[t.value.length() + 1]; //add one for the null byte
+		std::memcpy(value, (void*)t.value.c_str(), t.value.length() + 1);
 		out->t = SYM;
 		out->v = value;	
 	}
@@ -51,7 +51,10 @@ bool parse(std::vector<token> tokens, cell** out){
 					delete firstExpressions.back();
 					firstExpressions.pop_back();
 					currExpr = lastExpressions.back();
-					lastExpressions.back();
+					lastExpressions.pop_back();
+					//no need to populate the cell
+					//we returned to
+					//it will have been made as a new cell
 					currExpr->cdr = new cell();
 					lastExpr = currExpr;
 					currExpr = currExpr->cdr;	

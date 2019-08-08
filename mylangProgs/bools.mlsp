@@ -1,0 +1,7 @@
+((lambda (quote (if true false))
+	(quote (if false 10 20))
+)
+(lambda (quote (cond c1 c2)) (quote (cond c1 c2)))
+(lambda (quote (a b)) (quote a))
+(lambda (quote (a b)) (quote b))
+)
