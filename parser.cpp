@@ -9,7 +9,7 @@
 using namespace mylang;
 
 void decodeToken(token t, value* out){		
-	if(0x2F < t.value.at(0) && t.value.at(0) < 0x3A){
+	if((0x2F < t.value.at(0) && t.value.at(0) < 0x3A) || t.value.at(0) == '-'){
 		std::stringstream s(t.value);
 		int* value = new int;
 		s >> (*value);

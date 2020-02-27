@@ -191,8 +191,36 @@ void globalFunc::myCall(env* fEnv, mylang::value* out){
 		parent->e.add(key, allocatedVal);
 
 		(*out) = *(allocVal(keyVal));
-	} else {
+} else {
 		std::cout << "Global expects a symbol as its first arg" << std::endl;
+		throw 1;
+	}
+}
+
+addFunc::addFunc(env* parent) : anyArgsFunc(parent, value(), NULL){
+	std::vector<std::string> p = {"x", "addends"};
+	generateParams(p, &params);
+}
+
+void addFunc::myCall(env* fEnv, value* out){
+	value x; fEnv->e.get("x", &x);
+	value addends; fEnv->e.get("addends", &addends);
+	if(x.t == INT){
+		int sum = *((int*)x.v);
+		cell* currAddend = (cell*)addends.v;
+		while(currAddend){
+			if(currAddend->car.t == INT){
+				sum += *((int*)currAddend->car.v);	
+			} else {
+				std::cout << "Add expects addends to be integers" << std::endl;
+				throw 1;
+			}
+			currAddend = currAddend->cdr;
+		}
+
+		(*out) = *(allocVal(value(INT, &sum)));
+	} else {
+		std::cout << "Add expects an integer" << std::endl;
 		throw 1;
 	}
 }
@@ -215,4 +243,7 @@ void builtin::makeBuiltinEnv(env* out){
 	std::string listString = std::string("list");
 	value* listFuncVal = new value(FUNC, (void*)new listFunc(out));
 	out->e.add(listString, listFuncVal);
+	std::string addString = std::string("add");
+	value* addFuncVal = new value(FUNC, (void*)new addFunc(out));
+	out->e.add(addString, addFuncVal);
 }

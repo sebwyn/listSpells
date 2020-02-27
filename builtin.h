@@ -52,5 +52,11 @@ public:
 	globalFunc(mylang::env* parent);	
 };
 
+class addFunc : public anyArgsFunc {
+public:
+	void myCall(mylang::env* fEnv, mylang::value* out);
+	addFunc(mylang::env* parent);
+};
+
 void makeBuiltinEnv(mylang::env* out);
 }

@@ -159,7 +159,7 @@ bool func::bindArgs(cell* args, env* targetEnv, env* callingEnv){
 				return false;
 			}
 		} else {
-			std::cout << "Not enough Args" << std::endl;
+			std::cout << "Too many Args" << std::endl;
 			return false;
 		}
 	}
